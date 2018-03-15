@@ -2261,7 +2261,7 @@ void cpu_loop(CPUMIPSState *env)
         case EXCP_SYSCALL:
             env->active_tc.PC += 4;
 # ifdef TARGET_ABI_MIPSO32
-            syscall_num = env->active_tc.gpr[2] - 4000;
+            syscall_num = env->active_tc.gpr[2] - 1000;
             if (syscall_num >= sizeof(mips_syscall_args)) {
                 ret = -TARGET_ENOSYS;
             } else {
@@ -2269,7 +2269,10 @@ void cpu_loop(CPUMIPSState *env)
                 abi_ulong sp_reg;
                 abi_ulong arg5 = 0, arg6 = 0, arg7 = 0, arg8 = 0;
 
-                nb_args = mips_syscall_args[syscall_num];
+                /* HACK! For now, ignore mips_syscall_args and always read 8 args
+                 * because IRIX syscalls are ordered differently from Linux. */
+                nb_args = 8;
+                //nb_args = mips_syscall_args[syscall_num];
                 sp_reg = env->active_tc.gpr[29];
                 switch (nb_args) {
                 /* these arguments are taken from the stack */

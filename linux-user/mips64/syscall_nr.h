@@ -1,3 +1,7 @@
+/* use IRIX syscalls instead */
+#include "../irix_syscall_nr.h"
+
+#if 0
 #ifdef TARGET_ABI32
 /*
  * Linux N32 syscalls are in the range from 6000 to 6999.
@@ -653,4 +657,5 @@
 #define TARGET_NR_userfaultfd           (TARGET_NR_Linux + 317)
 #define TARGET_NR_membarrier            (TARGET_NR_Linux + 318)
 #define TARGET_NR_mlock2                (TARGET_NR_Linux + 319)
+#endif
 #endif

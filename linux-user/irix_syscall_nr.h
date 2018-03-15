@@ -1,11 +1,7 @@
-/* use IRIX syscalls instead */
-#include "../irix_syscall_nr.h"
-
-#if 0
 /*
- * Linux o32 style syscalls are in the range from 4000 to 4999.
+ * IRIX syscalls are in the range from 1000 to 1999.
  */
-#define TARGET_NR_Linux			4000
+#define TARGET_NR_Linux			1000
 #define TARGET_NR_syscall		(TARGET_NR_Linux +   0)
 #define TARGET_NR_exit			(TARGET_NR_Linux +   1)
 #define TARGET_NR_fork			(TARGET_NR_Linux +   2)
@@ -17,13 +13,13 @@
 #define TARGET_NR_creat			(TARGET_NR_Linux +   8)
 #define TARGET_NR_link			(TARGET_NR_Linux +   9)
 #define TARGET_NR_unlink		(TARGET_NR_Linux +  10)
-#define TARGET_NR_execve		(TARGET_NR_Linux +  11)
+//#define TARGET_NR_execve		(TARGET_NR_Linux +  11)
 #define TARGET_NR_chdir			(TARGET_NR_Linux +  12)
 #define TARGET_NR_time			(TARGET_NR_Linux +  13)
 #define TARGET_NR_mknod			(TARGET_NR_Linux +  14)
 #define TARGET_NR_chmod			(TARGET_NR_Linux +  15)
 #define TARGET_NR_lchown		(TARGET_NR_Linux +  16)
-#define TARGET_NR_break			(TARGET_NR_Linux +  17)
+#define TARGET_NR_brk			(TARGET_NR_Linux +  17)
 #define TARGET_NR_unused18		(TARGET_NR_Linux +  18)
 #define TARGET_NR_lseek			(TARGET_NR_Linux +  19)
 #define TARGET_NR_getpid		(TARGET_NR_Linux +  20)
@@ -46,12 +42,12 @@
 #define TARGET_NR_kill			(TARGET_NR_Linux +  37)
 #define TARGET_NR_rename		(TARGET_NR_Linux +  38)
 #define TARGET_NR_mkdir			(TARGET_NR_Linux +  39)
-#define TARGET_NR_rmdir			(TARGET_NR_Linux +  40)
+#define TARGET_NR_syssgi		(TARGET_NR_Linux +  40)
 #define TARGET_NR_dup			(TARGET_NR_Linux +  41)
 #define TARGET_NR_pipe			(TARGET_NR_Linux +  42)
 #define TARGET_NR_times			(TARGET_NR_Linux +  43)
 #define TARGET_NR_prof			(TARGET_NR_Linux +  44)
-#define TARGET_NR_brk			(TARGET_NR_Linux +  45)
+//#define TARGET_NR_brk			(TARGET_NR_Linux +  45)
 #define TARGET_NR_setgid		(TARGET_NR_Linux +  46)
 #define TARGET_NR_getgid		(TARGET_NR_Linux +  47)
 #define TARGET_NR_signal		(TARGET_NR_Linux +  48)
@@ -61,14 +57,14 @@
 #define TARGET_NR_umount2		(TARGET_NR_Linux +  52)
 #define TARGET_NR_lock			(TARGET_NR_Linux +  53)
 #define TARGET_NR_ioctl			(TARGET_NR_Linux +  54)
-#define TARGET_NR_fcntl			(TARGET_NR_Linux +  55)
-#define TARGET_NR_mpx			(TARGET_NR_Linux +  56)
+//#define TARGET_NR_fcntl			(TARGET_NR_Linux +  55)
+#define TARGET_NR_sysmp			(TARGET_NR_Linux +  56)
 #define TARGET_NR_setpgid		(TARGET_NR_Linux +  57)
 #define TARGET_NR_ulimit		(TARGET_NR_Linux +  58)
-#define TARGET_NR_unused59		(TARGET_NR_Linux +  59)
+#define TARGET_NR_execve		(TARGET_NR_Linux +  59)
 #define TARGET_NR_umask			(TARGET_NR_Linux +  60)
 #define TARGET_NR_chroot		(TARGET_NR_Linux +  61)
-#define TARGET_NR_ustat			(TARGET_NR_Linux +  62)
+#define TARGET_NR_fcntl			(TARGET_NR_Linux +  62)
 #define TARGET_NR_dup2			(TARGET_NR_Linux +  63)
 #define TARGET_NR_getppid		(TARGET_NR_Linux +  64)
 #define TARGET_NR_getpgrp		(TARGET_NR_Linux +  65)
@@ -85,7 +81,7 @@
 #define TARGET_NR_getrlimit		(TARGET_NR_Linux +  76)
 #define TARGET_NR_getrusage		(TARGET_NR_Linux +  77)
 #define TARGET_NR_gettimeofday		(TARGET_NR_Linux +  78)
-#define TARGET_NR_settimeofday		(TARGET_NR_Linux +  79)
+#define TARGET_NR_rmdir		(TARGET_NR_Linux +  79)
 #define TARGET_NR_getgroups		(TARGET_NR_Linux +  80)
 #define TARGET_NR_setgroups		(TARGET_NR_Linux +  81)
 #define TARGET_NR_reserved82		(TARGET_NR_Linux +  82)
@@ -96,7 +92,7 @@
 #define TARGET_NR_swapon		(TARGET_NR_Linux +  87)
 #define TARGET_NR_reboot		(TARGET_NR_Linux +  88)
 #define TARGET_NR_readdir		(TARGET_NR_Linux +  89)
-#define TARGET_NR_mmap			(TARGET_NR_Linux +  90)
+//#define TARGET_NR_mmap			(TARGET_NR_Linux +  90)
 #define TARGET_NR_munmap		(TARGET_NR_Linux +  91)
 #define TARGET_NR_truncate		(TARGET_NR_Linux +  92)
 #define TARGET_NR_ftruncate		(TARGET_NR_Linux +  93)
@@ -125,7 +121,9 @@
 #define TARGET_NR_sysinfo		(TARGET_NR_Linux + 116)
 #define TARGET_NR_ipc			(TARGET_NR_Linux + 117)
 #define TARGET_NR_fsync			(TARGET_NR_Linux + 118)
+#if defined(TARGET_ABI_MIPSO32)
 #define TARGET_NR_sigreturn		(TARGET_NR_Linux + 119)
+#endif
 #define TARGET_NR_clone			(TARGET_NR_Linux + 120)
 #define TARGET_NR_setdomainname		(TARGET_NR_Linux + 121)
 #define TARGET_NR_uname			(TARGET_NR_Linux + 122)
@@ -136,11 +134,11 @@
 #define TARGET_NR_create_module		(TARGET_NR_Linux + 127)
 #define TARGET_NR_init_module		(TARGET_NR_Linux + 128)
 #define TARGET_NR_delete_module		(TARGET_NR_Linux + 129)
-#define TARGET_NR_get_kernel_syms	(TARGET_NR_Linux + 130)
+#define TARGET_NR_prctl	(TARGET_NR_Linux + 130)
 #define TARGET_NR_quotactl		(TARGET_NR_Linux + 131)
 #define TARGET_NR_getpgid		(TARGET_NR_Linux + 132)
 #define TARGET_NR_fchdir		(TARGET_NR_Linux + 133)
-#define TARGET_NR_bdflush		(TARGET_NR_Linux + 134)
+#define TARGET_NR_mmap		(TARGET_NR_Linux + 134)
 #define TARGET_NR_sysfs			(TARGET_NR_Linux + 135)
 #define TARGET_NR_personality		(TARGET_NR_Linux + 136)
 #define TARGET_NR_afs_syscall		(TARGET_NR_Linux + 137) /* Syscall for Andrew File System */
@@ -164,6 +162,9 @@
 #define TARGET_NR_munlock		(TARGET_NR_Linux + 155)
 #define TARGET_NR_mlockall		(TARGET_NR_Linux + 156)
 #define TARGET_NR_munlockall		(TARGET_NR_Linux + 157)
+
+#define TARGET_NR_fxstat        (TARGET_NR_Linux + 160)
+/*
 #define TARGET_NR_sched_setparam	(TARGET_NR_Linux + 158)
 #define TARGET_NR_sched_getparam	(TARGET_NR_Linux + 159)
 #define TARGET_NR_sched_setscheduler	(TARGET_NR_Linux + 160)
@@ -172,6 +173,7 @@
 #define TARGET_NR_sched_get_priority_max	(TARGET_NR_Linux + 163)
 #define TARGET_NR_sched_get_priority_min	(TARGET_NR_Linux + 164)
 #define TARGET_NR_sched_rr_get_interval	(TARGET_NR_Linux + 165)
+*/
 #define TARGET_NR_nanosleep		(TARGET_NR_Linux + 166)
 #define TARGET_NR_mremap		(TARGET_NR_Linux + 167)
 #define TARGET_NR_accept		(TARGET_NR_Linux + 168)
@@ -198,7 +200,7 @@
 #define TARGET_NR_nfsservctl		(TARGET_NR_Linux + 189)
 #define TARGET_NR_setresgid		(TARGET_NR_Linux + 190)
 #define TARGET_NR_getresgid		(TARGET_NR_Linux + 191)
-#define TARGET_NR_prctl			(TARGET_NR_Linux + 192)
+//#define TARGET_NR_prctl			(TARGET_NR_Linux + 192)
 #define TARGET_NR_rt_sigreturn		(TARGET_NR_Linux + 193)
 #define TARGET_NR_rt_sigaction		(TARGET_NR_Linux + 194)
 #define TARGET_NR_rt_sigprocmask	(TARGET_NR_Linux + 195)
@@ -367,4 +369,3 @@
 #define TARGET_NR_userfaultfd           (TARGET_NR_Linux + 357)
 #define TARGET_NR_membarrier            (TARGET_NR_Linux + 358)
 #define TARGET_NR_mlock2                (TARGET_NR_Linux + 359)
-#endif

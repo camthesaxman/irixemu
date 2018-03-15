@@ -1290,7 +1290,7 @@ static inline rlim_t target_to_host_rlim(abi_ulong target_rlim)
 {
     abi_ulong target_rlim_swap;
     rlim_t result;
-    
+
     target_rlim_swap = tswapal(target_rlim);
     if (target_rlim_swap == TARGET_RLIM_INFINITY)
         return RLIM_INFINITY;
@@ -1298,7 +1298,7 @@ static inline rlim_t target_to_host_rlim(abi_ulong target_rlim)
     result = target_rlim_swap;
     if (target_rlim_swap != (rlim_t)result)
         return RLIM_INFINITY;
-    
+
     return result;
 }
 
@@ -1306,13 +1306,13 @@ static inline abi_ulong host_to_target_rlim(rlim_t rlim)
 {
     abi_ulong target_rlim_swap;
     abi_ulong result;
-    
+
     if (rlim == RLIM_INFINITY || rlim != (abi_long)rlim)
         target_rlim_swap = TARGET_RLIM_INFINITY;
     else
         target_rlim_swap = rlim;
     result = tswapal(target_rlim_swap);
-    
+
     return result;
 }
 
@@ -1691,9 +1691,9 @@ static inline abi_long target_to_host_cmsg(struct msghdr *msgh,
     abi_ulong target_cmsg_addr;
     struct target_cmsghdr *target_cmsg, *target_cmsg_start;
     socklen_t space = 0;
-    
+
     msg_controllen = tswapal(target_msgh->msg_controllen);
-    if (msg_controllen < sizeof (struct target_cmsghdr)) 
+    if (msg_controllen < sizeof (struct target_cmsghdr))
         goto the_end;
     target_cmsg_addr = tswapal(target_msgh->msg_control);
     target_cmsg = lock_user(VERIFY_READ, target_cmsg_addr, msg_controllen, 1);
@@ -1775,7 +1775,7 @@ static inline abi_long host_to_target_cmsg(struct target_msghdr *target_msgh,
     socklen_t space = 0;
 
     msg_controllen = tswapal(target_msgh->msg_controllen);
-    if (msg_controllen < sizeof (struct target_cmsghdr)) 
+    if (msg_controllen < sizeof (struct target_cmsghdr))
         goto the_end;
     target_cmsg_addr = tswapal(target_msgh->msg_control);
     target_cmsg = lock_user(VERIFY_WRITE, target_cmsg_addr, msg_controllen, 0);
@@ -6114,7 +6114,7 @@ abi_long do_set_thread_area(CPUX86State *env, abi_ulong ptr)
     }
     unlock_user_struct(target_ldt_info, ptr, 1);
 
-    if (ldt_info.entry_number < TARGET_GDT_ENTRY_TLS_MIN || 
+    if (ldt_info.entry_number < TARGET_GDT_ENTRY_TLS_MIN ||
         ldt_info.entry_number > TARGET_GDT_ENTRY_TLS_MAX)
            return -TARGET_EINVAL;
     seg_32bit = ldt_info.flags & 1;
@@ -6192,7 +6192,7 @@ static abi_long do_get_thread_area(CPUX86State *env, abi_ulong ptr)
     lp = (uint32_t *)(gdt_table + idx);
     entry_1 = tswap32(lp[0]);
     entry_2 = tswap32(lp[1]);
-    
+
     read_exec_only = ((entry_2 >> 9) & 1) ^ 1;
     contents = (entry_2 >> 10) & 3;
     seg_not_present = ((entry_2 >> 15) & 1) ^ 1;
@@ -6208,8 +6208,8 @@ static abi_long do_get_thread_area(CPUX86State *env, abi_ulong ptr)
         (read_exec_only << 3) | (limit_in_pages << 4) |
         (seg_not_present << 5) | (useable << 6) | (lm << 7);
     limit = (entry_1 & 0xffff) | (entry_2  & 0xf0000);
-    base_addr = (entry_1 >> 16) | 
-        (entry_2 & 0xff000000) | 
+    base_addr = (entry_1 >> 16) |
+        (entry_2 & 0xff000000) |
         ((entry_2 & 0xff) << 16);
     target_ldt_info->base_addr = tswapal(base_addr);
     target_ldt_info->limit = tswap32(limit);
@@ -7821,6 +7821,38 @@ static int host_to_target_cpu_mask(const unsigned long *host_mask,
     return 0;
 }
 
+static abi_long do_sgi_mapelf(int fd, abi_long tgt_phdr, int cnt)
+{
+    int i;
+    abi_long retval;
+
+    Elf32_Phdr *phdr = lock_user(VERIFY_WRITE, tgt_phdr, cnt * sizeof(Elf32_Phdr), 0);
+
+    for (i = 0; i < cnt; i++) {
+        abi_long vaddr = tswap32(phdr[i].p_vaddr);
+        abi_long memsz = tswap32(phdr[i].p_memsz);
+        abi_long offset = tswap32(phdr[i].p_offset);
+        abi_long flags = tswap32(phdr[i].p_flags);
+
+        retval = target_mmap(
+            (vaddr & TARGET_PAGE_MASK),
+            memsz, target_to_host_bitmask(flags, mmap_flags_tbl),
+            (MAP_FIXED | MAP_PRIVATE | MAP_DENYWRITE),
+            fd, (offset & TARGET_PAGE_MASK));
+
+        if (retval != (vaddr & TARGET_PAGE_MASK)) {
+            /* failed */
+            return retval;
+        }
+    }
+
+    retval = tswap32(phdr->p_vaddr);
+
+    unlock_user(phdr, tgt_phdr, cnt * sizeof(Elf32_Phdr));
+    return retval;
+};
+
+
 /* do_syscall() should always have a single exit point at the end so
    that actions, such as logging of syscall results, can be performed.
    All errnos that do_syscall() returns must be -TARGET_<errcode>. */
@@ -7858,6 +7890,28 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         print_syscall(num, arg1, arg2, arg3, arg4, arg5, arg6);
 
     switch(num) {
+    case TARGET_NR_syssgi:
+        switch (arg1) {
+        case 68:  // SGI_ELFMAP
+            ret = do_sgi_mapelf(arg2, arg3, arg4);
+            break;
+        default:
+            qemu_log("syssgi: unknown op %i\n", arg1);
+            ret = -1;
+            break;
+        }
+        break;
+    case TARGET_NR_sysmp:
+        switch (arg1) {
+        case 14:  // MP_PGSIZE
+            ret = tswapal(TARGET_PAGE_SIZE);
+            break;
+        default:
+            qemu_log("sysmp: unknown op %i\n", arg1);
+            ret = -1;
+            break;
+        }
+        break;
     case TARGET_NR_exit:
         /* In old applications this may be used to implement _exit(2).
            However in threaded applictions it is used for thread termination,
@@ -9134,6 +9188,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             }
         }
         break;
+/*
     case TARGET_NR_settimeofday:
         {
             struct timeval tv, *ptv = NULL;
@@ -9156,6 +9211,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             ret = get_errno(settimeofday(ptv, ptz));
         }
         break;
+*/
 #if defined(TARGET_NR_select)
     case TARGET_NR_select:
 #if defined(TARGET_WANT_NI_OLD_SELECT)
@@ -10551,6 +10607,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             }
         }
         break;
+/*
     case TARGET_NR_sched_setparam:
         {
             struct sched_param *target_schp;
@@ -10618,6 +10675,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             }
         }
         break;
+*/
     case TARGET_NR_nanosleep:
         {
             struct timespec req, rem;
@@ -11040,7 +11098,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         break;
 #if defined(TARGET_NR_fchownat)
     case TARGET_NR_fchownat:
-        if (!(p = lock_user_string(arg2))) 
+        if (!(p = lock_user_string(arg2)))
             goto efault;
         ret = get_errno(fchownat(arg1, p, low2highuid(arg3),
                                  low2highgid(arg4), arg5));
