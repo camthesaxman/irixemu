@@ -163,7 +163,10 @@
 #define TARGET_NR_mlockall		(TARGET_NR_Linux + 156)
 #define TARGET_NR_munlockall		(TARGET_NR_Linux + 157)
 
+#define TARGET_NR_xstat        (TARGET_NR_Linux + 158)
 #define TARGET_NR_fxstat        (TARGET_NR_Linux + 160)
+
+#
 /*
 #define TARGET_NR_sched_setparam	(TARGET_NR_Linux + 158)
 #define TARGET_NR_sched_getparam	(TARGET_NR_Linux + 159)
@@ -201,6 +204,9 @@
 #define TARGET_NR_setresgid		(TARGET_NR_Linux + 190)
 #define TARGET_NR_getresgid		(TARGET_NR_Linux + 191)
 //#define TARGET_NR_prctl			(TARGET_NR_Linux + 192)
+// not exactly sure what the rt_ and k prefixes are for.
+// Based on the man pages, I think ksigprocmask (IRIX) is equivalent to rt_sigprocmask (Linux).
+/*
 #define TARGET_NR_rt_sigreturn		(TARGET_NR_Linux + 193)
 #define TARGET_NR_rt_sigaction		(TARGET_NR_Linux + 194)
 #define TARGET_NR_rt_sigprocmask	(TARGET_NR_Linux + 195)
@@ -208,6 +214,15 @@
 #define TARGET_NR_rt_sigtimedwait	(TARGET_NR_Linux + 197)
 #define TARGET_NR_rt_sigqueueinfo	(TARGET_NR_Linux + 198)
 #define TARGET_NR_rt_sigsuspend		(TARGET_NR_Linux + 199)
+*/
+#define TARGET_NR_rt_sigreturn		(TARGET_NR_Linux + 193)
+#define TARGET_NR_rt_sigaction		(TARGET_NR_Linux + 194)
+#define TARGET_NR_rt_sigprocmask	(TARGET_NR_Linux + 195)
+#define TARGET_NR_rt_sigpending		(TARGET_NR_Linux + 196)
+#define TARGET_NR_rt_sigtimedwait	(TARGET_NR_Linux + 197)
+#define TARGET_NR_rt_sigqueueinfo	(TARGET_NR_Linux + 198)
+#define TARGET_NR_rt_sigsuspend		(TARGET_NR_Linux + 199)
+
 #define TARGET_NR_pread64		(TARGET_NR_Linux + 200)
 #define TARGET_NR_pwrite64		(TARGET_NR_Linux + 201)
 #define TARGET_NR_chown 		(TARGET_NR_Linux + 202)

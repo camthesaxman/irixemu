@@ -7821,12 +7821,19 @@ static int host_to_target_cpu_mask(const unsigned long *host_mask,
     return 0;
 }
 
-static abi_long do_sgi_mapelf(int fd, abi_long tgt_phdr, int cnt)
+static abi_ulong do_sgi_mapelf(int fd, abi_ulong tgt_phdr, int cnt)
 {
     int i;
-    abi_long retval;
+    abi_ulong retval;
 
-    Elf32_Phdr *phdr = lock_user(VERIFY_WRITE, tgt_phdr, cnt * sizeof(Elf32_Phdr), 0);
+    //printf("do_sgi_mapelf: 0x%08X, %i\n", tgt_phdr, cnt);
+    Elf32_Phdr *phdr = lock_user(VERIFY_READ, tgt_phdr, cnt * sizeof(Elf32_Phdr), 1);
+
+    // HACK! HACK! HACK!
+    // access_ok seems to fail mysteriously even when I give it a valid pointer,
+    // and I'm not sure why. But g2h seems to translate the address correctly.
+    if (phdr == NULL)
+        phdr = g2h(tgt_phdr);
 
     for (i = 0; i < cnt; i++) {
         abi_long vaddr = tswap32(phdr[i].p_vaddr);
@@ -7836,22 +7843,21 @@ static abi_long do_sgi_mapelf(int fd, abi_long tgt_phdr, int cnt)
 
         retval = target_mmap(
             (vaddr & TARGET_PAGE_MASK),
-            memsz, target_to_host_bitmask(flags, mmap_flags_tbl),
+            (vaddr & ~TARGET_PAGE_MASK) + memsz, target_to_host_bitmask(flags, mmap_flags_tbl),
             (MAP_FIXED | MAP_PRIVATE | MAP_DENYWRITE),
             fd, (offset & TARGET_PAGE_MASK));
 
         if (retval != (vaddr & TARGET_PAGE_MASK)) {
             /* failed */
+            unlock_user(phdr, tgt_phdr, cnt * sizeof(Elf32_Phdr));
             return retval;
         }
     }
 
     retval = tswap32(phdr->p_vaddr);
-
     unlock_user(phdr, tgt_phdr, cnt * sizeof(Elf32_Phdr));
     return retval;
 };
-
 
 /* do_syscall() should always have a single exit point at the end so
    that actions, such as logging of syscall results, can be performed.
@@ -7895,6 +7901,38 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         case 68:  // SGI_ELFMAP
             ret = do_sgi_mapelf(arg2, arg3, arg4);
             break;
+        case 22:  // SGI_SYSCONF
+            switch (arg2) {
+            case 29:  // _SC_CAP
+                ret = 1;
+                break;
+            default:
+                qemu_log("sysconf: unknown op %i\n", arg2);
+                ret = -1;
+                break;
+            }
+            break;
+        case 85:  // SGI_PROC_ATTR_GET
+            /*
+            if (!(p = lock_user_string(arg2)))
+                goto efault;
+            if (strcmp(p, "SGI_CAP_PROCESS") == 0) {
+                struct sgi_cap_set {
+                    uint64_t cap_effective;
+                    uint64_t cap_permitted;
+                    uint64_t cap_inheritable;
+                };
+                struct sgi_cap_set *cap;
+                lock_user_struct(VERIFY_WRITE, cap, arg3, 0);
+                //cap->cap_permitted = 0x0ffffffffffffffeLL;
+                unlock_user_struct(cap, arg3, 0);
+                ret = 0;
+                break;
+            }
+            unlock_user(p, arg1, 0);
+            */
+            ret = 0;
+            break;
         default:
             qemu_log("syssgi: unknown op %i\n", arg1);
             ret = -1;
@@ -7912,6 +7950,12 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             break;
         }
         break;
+#ifdef TARGET_NR_fxstat
+    // I assume it's the same as fstat, except for one additional arg
+    case TARGET_NR_fxstat:
+        ret = get_errno(fstat(arg1, &st));
+        goto do_stat;
+#endif
     case TARGET_NR_exit:
         /* In old applications this may be used to implement _exit(2).
            However in threaded applictions it is used for thread termination,
