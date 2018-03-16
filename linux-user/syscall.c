@@ -7950,12 +7950,23 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             break;
         }
         break;
+#ifdef TARGET_NR_xstat
+    case TARGET_NR_xstat:
+        // ignore arg2
+        arg2 = arg3;
+        arg3 = arg4;
+        ret = get_errno(fstat(arg1, &st));
+        goto do_stat;
+#endif
 #ifdef TARGET_NR_fxstat
     // I assume it's the same as fstat, except for one additional arg
     case TARGET_NR_fxstat:
         ret = get_errno(fstat(arg1, &st));
         goto do_stat;
 #endif
+    case TARGET_NR_execv:
+        arg3 = 0;
+        goto do_execve;
     case TARGET_NR_exit:
         /* In old applications this may be used to implement _exit(2).
            However in threaded applictions it is used for thread termination,
@@ -8155,6 +8166,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         break;
 #endif
     case TARGET_NR_execve:
+    do_execve:
         {
             char **argp, **envp;
             int argc, envc;
