@@ -2136,9 +2136,15 @@ int page_check_range(target_ulong start, target_ulong len, int flags)
             return -1;
         }
 
+        // HACK! HACK! HACK!
+        // There are a few cases where the target program tries to read from a
+        // valid memory address, but this flag is not set for some reason.
+        // I'm temporarily disabling this check as a workaround.
+        /*
         if ((flags & PAGE_READ) && !(p->flags & PAGE_READ)) {
             return -1;
         }
+        */
         if (flags & PAGE_WRITE) {
             if (!(p->flags & PAGE_WRITE_ORG)) {
                 return -1;

@@ -7829,11 +7829,8 @@ static abi_ulong do_sgi_mapelf(int fd, abi_ulong tgt_phdr, int cnt)
     //printf("do_sgi_mapelf: 0x%08X, %i\n", tgt_phdr, cnt);
     Elf32_Phdr *phdr = lock_user(VERIFY_READ, tgt_phdr, cnt * sizeof(Elf32_Phdr), 1);
 
-    // HACK! HACK! HACK!
-    // access_ok seems to fail mysteriously even when I give it a valid pointer,
-    // and I'm not sure why. But g2h seems to translate the address correctly.
     if (phdr == NULL)
-        phdr = g2h(tgt_phdr);
+        return -1;
 
     for (i = 0; i < cnt; i++) {
         abi_long vaddr = tswap32(phdr[i].p_vaddr);
