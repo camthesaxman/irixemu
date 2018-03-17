@@ -7833,14 +7833,19 @@ static abi_ulong do_sgi_mapelf(int fd, abi_ulong tgt_phdr, int cnt)
         return -1;
 
     for (i = 0; i < cnt; i++) {
+        int prot;
         abi_long vaddr = tswap32(phdr[i].p_vaddr);
         abi_long memsz = tswap32(phdr[i].p_memsz);
         abi_long offset = tswap32(phdr[i].p_offset);
         abi_long flags = tswap32(phdr[i].p_flags);
 
+        prot = (flags & PF_R) ? PROT_READ : 0;
+        prot |= (flags & PF_W) ? PROT_WRITE : 0;
+        prot |= (flags & PF_X) ? PROT_EXEC : 0;
+
         retval = target_mmap(
             (vaddr & TARGET_PAGE_MASK),
-            (vaddr & ~TARGET_PAGE_MASK) + memsz, target_to_host_bitmask(flags, mmap_flags_tbl),
+            (vaddr & ~TARGET_PAGE_MASK) + memsz, prot,
             (MAP_FIXED | MAP_PRIVATE | MAP_DENYWRITE),
             fd, (offset & TARGET_PAGE_MASK));
 
