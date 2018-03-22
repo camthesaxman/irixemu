@@ -45,6 +45,7 @@
 #include <sys/sem.h>
 #include <sys/statfs.h>
 #include <utime.h>
+#include <ulimit.h>
 #include <sys/sysinfo.h>
 #include <sys/signalfd.h>
 //#include <sys/user.h>
@@ -7821,6 +7822,38 @@ static int host_to_target_cpu_mask(const unsigned long *host_mask,
     return 0;
 }
 
+// executes the specified program in a QEMU VM
+static int qemu_execve(const char *filename, char **argv, char **envp)
+{
+    int target_argc = 0;
+    char **exec_argv;
+    int i;
+    const char *fname = path(filename);
+
+    // count number of arguments the target program is passing
+    while (argv[target_argc] != NULL)
+        target_argc++;
+
+    exec_argv = g_malloc((qemu_argc + target_argc + 1) * sizeof(*exec_argv));
+
+    // add qemu args
+    for (i = 0; i < qemu_argc; i++)
+        exec_argv[i] = qemu_argv[i];
+
+    // add target program args
+    exec_argv[qemu_argc + 0] = (char *)fname;
+    for (i = 1; i < target_argc; i++)
+        exec_argv[qemu_argc + i] = argv[i];
+
+    // end with a null pointer
+    exec_argv[qemu_argc + target_argc] = NULL;
+
+    int ret = safe_execve(exec_argv[0], exec_argv, envp);
+
+    g_free(exec_argv);
+    return ret;
+}
+
 static abi_ulong do_sgi_mapelf(int fd, abi_ulong tgt_phdr, int cnt)
 {
     int i;
@@ -7859,7 +7892,8 @@ static abi_ulong do_sgi_mapelf(int fd, abi_ulong tgt_phdr, int cnt)
     retval = tswap32(phdr->p_vaddr);
     unlock_user(phdr, tgt_phdr, cnt * sizeof(Elf32_Phdr));
     return retval;
-};
+}
+
 
 /* do_syscall() should always have a single exit point at the end so
    that actions, such as logging of syscall results, can be performed.
@@ -8237,7 +8271,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
              * before the execve completes and makes it the other
              * program's problem.
              */
-            ret = get_errno(safe_execve(p, argp, envp));
+            ret = get_errno(qemu_execve(p, argp, envp));
             unlock_user(p, arg1, 0);
 
             goto execve_end;
@@ -8681,7 +8715,9 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         break;
 #ifdef TARGET_NR_ulimit
     case TARGET_NR_ulimit:
-        goto unimplemented;
+        ret = ulimit(arg1, arg2);
+        break;
+        //goto unimplemented;
 #endif
 #ifdef TARGET_NR_oldolduname
     case TARGET_NR_oldolduname:

@@ -4377,6 +4377,10 @@ static int parse_args(int argc, char **argv)
     return optind;
 }
 
+// args to pass to child instances of QEMU when spawning a child process
+int qemu_argc;
+char **qemu_argv;
+
 int main(int argc, char **argv, char **envp)
 {
     struct target_pt_regs regs1, *regs = &regs1;
@@ -4992,6 +4996,10 @@ int main(int argc, char **argv, char **envp)
         }
         gdb_handlesig(cpu, 0);
     }
+
+    qemu_argc = optind;
+    qemu_argv = argv;
+
     cpu_loop(env);
     /* never exits */
     return 0;

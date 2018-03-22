@@ -438,6 +438,9 @@ void mmap_fork_end(int child);
 /* main.c */
 extern unsigned long guest_stack_size;
 
+extern int qemu_argc;
+extern char **qemu_argv;
+
 /* user access */
 
 #define VERIFY_READ 0
