@@ -7894,6 +7894,40 @@ static abi_ulong do_sgi_mapelf(int fd, abi_ulong tgt_phdr, int cnt)
     return retval;
 }
 
+typedef struct k_siginfo {
+	int32_t	si_signo;		/* signal from signal.h	*/
+	int32_t 	si_code;		/* code from above	*/
+	int32_t	si_errno;		/* error from errno.h	*/
+	union {
+		struct {			/* kill(), SIGCLD	*/
+			pid_t	__pid;		/* process ID		*/
+			union {
+				struct {
+					uid_t	__uid;
+				} __kill;
+				struct {
+					int32_t __utime;
+					int32_t __status;
+					int32_t __stime;
+					int32_t __swap;
+				} __cld;
+			} __pdata;
+		} __proc;
+
+		struct {	/* SIGSEGV, SIGBUS, SIGILL and SIGFPE	*/
+			void *__addr;	/* faulting address	*/
+		} __fault;
+
+		struct {			/* SIGPOLL, SIGXFSZ	*/
+		/* fd not currently available for SIGPOLL */
+			int32_t	__fd;	/* file descriptor	*/
+			int64_t	__band;
+		} __file;
+
+		union sigval __value;		/* Posix 1003.1b signals */
+
+	} __data;
+} k_siginfo_t;
 
 /* do_syscall() should always have a single exit point at the end so
    that actions, such as logging of syscall results, can be performed.
@@ -7932,6 +7966,25 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         print_syscall(num, arg1, arg2, arg3, arg4, arg5, arg6);
 
     switch(num) {
+    case TARGET_NR_waitsys:
+        if (arg1 == 7)  // P_ALL
+        {
+            int status;
+            ret = get_errno(safe_wait4(-1, &status, 0, 0));
+            if (!is_error(ret) && ret) {
+                k_siginfo_t si = {0};
+                si.si_signo = SIGCLD;
+                si.__data.__proc.__pid = ret;
+                si.si_code = CLD_EXITED;
+                if (!(p = lock_user(VERIFY_WRITE, arg3, sizeof(k_siginfo_t), 0)))
+                    goto efault;
+                *(k_siginfo_t *)p = si;
+                unlock_user(p, arg3, sizeof(k_siginfo_t));
+            }
+        }
+        else
+            goto unimplemented;
+        break;
     case TARGET_NR_syssgi:
         switch (arg1) {
         case 68:  // SGI_ELFMAP
@@ -8136,6 +8189,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         {
             siginfo_t info;
             info.si_pid = 0;
+
             ret = get_errno(safe_waitid(arg1, arg2, &info, arg4, NULL));
             if (!is_error(ret) && arg3 && info.si_pid != 0) {
                 if (!(p = lock_user(VERIFY_WRITE, arg3, sizeof(target_siginfo_t), 0)))
@@ -10796,6 +10850,9 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
 #endif
     case TARGET_NR_prctl:
         switch (arg1) {
+        case 14:  // PR_LASTSHEXIT
+            ret = 1;
+            break;
         case PR_GET_PDEATHSIG:
         {
             int deathsig;
