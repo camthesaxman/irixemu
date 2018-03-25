@@ -5671,7 +5671,7 @@ static abi_long do_ioctl(int fd, int cmd, abi_long arg)
     ie = ioctl_entries;
     for(;;) {
         if (ie->target_cmd == 0) {
-            gemu_log("Unsupported ioctl: cmd=0x%04lx\n", (long)cmd);
+            //gemu_log("Unsupported ioctl: cmd=0x%04lx\n", (long)cmd);
             return -TARGET_ENOSYS;
         }
         if (ie->target_cmd == cmd)
@@ -8116,15 +8116,17 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
 #ifdef TARGET_NR_fork
     case TARGET_NR_fork:
         ret = get_errno(do_fork(cpu_env, TARGET_SIGCHLD, 0, 0, 0, 0));
+        // IRIX fork() expects the syscall to return zero in $v1
+        ((CPUMIPSState *)cpu_env)->active_tc.gpr[3] = 0;
         break;
 #endif
-#ifdef TARGET_NR_waitpid
-    case TARGET_NR_waitpid:
+#ifdef TARGET_NR_wait
+    case TARGET_NR_wait:
         {
             int status;
-            ret = get_errno(safe_wait4(arg1, &status, arg3, 0));
-            if (!is_error(ret) && arg2 && ret
-                && put_user_s32(host_to_target_waitstatus(status), arg2))
+            ret = get_errno(safe_wait4(-1, &status, 0, 0));
+            if (!is_error(ret) && ret
+                && put_user_s32(host_to_target_waitstatus(status), arg1))
                 goto efault;
         }
         break;
@@ -8674,7 +8676,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
 #endif
 #ifdef TARGET_NR_signal
     case TARGET_NR_signal:
-        goto unimplemented;
+        goto unimplemented_nowarn;
 #endif
     case TARGET_NR_acct:
         if (arg1 == 0) {
@@ -9935,11 +9937,15 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         break;
 #ifdef TARGET_NR_stat
     case TARGET_NR_stat:
+        // TODO: get stat to work
+        goto unimplemented_nowarn;
+        /*
         if (!(p = lock_user_string(arg1)))
             goto efault;
         ret = get_errno(stat(path(p), &st));
         unlock_user(p, arg1, 0);
         goto do_stat;
+        */
 #endif
 #ifdef TARGET_NR_lstat
     case TARGET_NR_lstat:
