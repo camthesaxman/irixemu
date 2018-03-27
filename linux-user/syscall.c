@@ -7929,6 +7929,34 @@ typedef struct k_siginfo {
 	} __data;
 } k_siginfo_t;
 
+static int output_target_statbuf(int ret, struct stat *st, abi_long statbuf)
+{
+    struct target_stat *target_st;
+
+    if (!is_error(ret)) {
+        if (!lock_user_struct(VERIFY_WRITE, target_st, statbuf, 0))
+            return -TARGET_EFAULT;
+        // I guess I need to do this.
+        st->st_mode = tswap32(st->st_mode);
+        memset(target_st, 0, sizeof(*target_st));
+        __put_user(st->st_dev, &target_st->st_dev);
+        __put_user(st->st_ino, &target_st->st_ino);
+        __put_user(st->st_mode, &target_st->st_mode);
+        __put_user(st->st_uid, &target_st->st_uid);
+        __put_user(st->st_gid, &target_st->st_gid);
+        __put_user(st->st_nlink, &target_st->st_nlink);
+        __put_user(st->st_rdev, &target_st->st_rdev);
+        __put_user(st->st_size, &target_st->st_size);
+        __put_user(st->st_blksize, &target_st->st_blksize);
+        __put_user(st->st_blocks, &target_st->st_blocks);
+        __put_user(st->st_atime, &target_st->target_st_atime);
+        __put_user(st->st_mtime, &target_st->target_st_mtime);
+        __put_user(st->st_ctime, &target_st->target_st_ctime);
+        unlock_user_struct(target_st, statbuf, 1);
+    }
+    return ret;
+}
+
 /* do_syscall() should always have a single exit point at the end so
    that actions, such as logging of syscall results, can be performed.
    All errnos that do_syscall() returns must be -TARGET_<errcode>. */
@@ -8041,17 +8069,46 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         break;
 #ifdef TARGET_NR_xstat
     case TARGET_NR_xstat:
-        // ignore arg2
-        arg2 = arg3;
-        arg3 = arg4;
-        ret = get_errno(fstat(arg1, &st));
-        goto do_stat;
+        switch (arg1) {
+        case 2:
+            if (!(p = lock_user_string(arg2)))
+                goto efault;
+            ret = get_errno(stat(path(p), &st));
+            unlock_user(p, arg2, 0);
+            ret = output_target_statbuf(ret, &st, arg3);
+            break;
+        case 3:
+            if (!(p = lock_user_string(arg2)))
+                goto efault;
+            ret = get_errno(stat(path(p), &st));
+            unlock_user(p, arg2, 0);
+            if (!is_error(ret))
+                ret = host_to_target_stat64(cpu_env, arg3, &st);
+            break;
+        default:
+            ret = -TARGET_EINVAL;
+            break;
+        }
+        break;
 #endif
 #ifdef TARGET_NR_fxstat
     // I assume it's the same as fstat, except for one additional arg
     case TARGET_NR_fxstat:
-        ret = get_errno(fstat(arg1, &st));
-        goto do_stat;
+        switch (arg1) {
+        case 2:
+            ret = get_errno(fstat(arg2, &st));
+            ret = output_target_statbuf(ret, &st, arg3);
+            break;
+        case 3:
+            ret = get_errno(fstat(arg2, &st));
+            if (!is_error(ret))
+                ret = host_to_target_stat64(cpu_env, arg3, &st);
+            break;
+        default:
+            ret = -TARGET_EINVAL;
+            break;
+        }
+        break;
 #endif
     case TARGET_NR_execv:
         arg3 = 0;
@@ -11229,6 +11286,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             }
         }
         break;
+    /*
     case TARGET_NR_setgroups:
         {
             int gidsetsize = arg1;
@@ -11250,6 +11308,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             ret = get_errno(setgroups(gidsetsize, grouplist));
         }
         break;
+    */
     case TARGET_NR_fchown:
         ret = get_errno(fchown(arg1, low2highuid(arg2), low2highgid(arg3)));
         break;
