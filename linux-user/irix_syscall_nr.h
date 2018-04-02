@@ -166,6 +166,7 @@
 #define TARGET_NR_munlockall		(TARGET_NR_Linux + 157)
 
 #define TARGET_NR_xstat        (TARGET_NR_Linux + 158)
+#define TARGET_NR_lxstat        (TARGET_NR_Linux + 159)
 #define TARGET_NR_fxstat        (TARGET_NR_Linux + 160)
 
 #define TARGET_NR_sigaction     (TARGET_NR_Linux + 162)

@@ -7936,8 +7936,6 @@ static int output_target_statbuf(int ret, struct stat *st, abi_long statbuf)
     if (!is_error(ret)) {
         if (!lock_user_struct(VERIFY_WRITE, target_st, statbuf, 0))
             return -TARGET_EFAULT;
-        // I guess I need to do this.
-        st->st_mode = tswap32(st->st_mode);
         memset(target_st, 0, sizeof(*target_st));
         __put_user(st->st_dev, &target_st->st_dev);
         __put_user(st->st_ino, &target_st->st_ino);
@@ -8091,8 +8089,31 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         }
         break;
 #endif
+#ifdef TARGET_NR_lxstat
+    case TARGET_NR_lxstat:
+        switch (arg1) {
+        case 2:
+            if (!(p = lock_user_string(arg2)))
+                goto efault;
+            ret = get_errno(lstat(path(p), &st));
+            unlock_user(p, arg2, 0);
+            ret = output_target_statbuf(ret, &st, arg3);
+            break;
+        case 3:
+            if (!(p = lock_user_string(arg2)))
+                goto efault;
+            ret = get_errno(lstat(path(p), &st));
+            unlock_user(p, arg2, 0);
+            if (!is_error(ret))
+                ret = host_to_target_stat64(cpu_env, arg3, &st);
+            break;
+        default:
+            ret = -TARGET_EINVAL;
+            break;
+        }
+        break;
+#endif
 #ifdef TARGET_NR_fxstat
-    // I assume it's the same as fstat, except for one additional arg
     case TARGET_NR_fxstat:
         switch (arg1) {
         case 2:
@@ -10153,29 +10174,27 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
 #endif
     case TARGET_NR_sysinfo:
         {
-            struct target_sysinfo *target_value;
-            struct sysinfo value;
-            ret = get_errno(sysinfo(&value));
-            if (!is_error(ret) && arg1)
-            {
-                if (!lock_user_struct(VERIFY_WRITE, target_value, arg1, 0))
-                    goto efault;
-                __put_user(value.uptime, &target_value->uptime);
-                __put_user(value.loads[0], &target_value->loads[0]);
-                __put_user(value.loads[1], &target_value->loads[1]);
-                __put_user(value.loads[2], &target_value->loads[2]);
-                __put_user(value.totalram, &target_value->totalram);
-                __put_user(value.freeram, &target_value->freeram);
-                __put_user(value.sharedram, &target_value->sharedram);
-                __put_user(value.bufferram, &target_value->bufferram);
-                __put_user(value.totalswap, &target_value->totalswap);
-                __put_user(value.freeswap, &target_value->freeswap);
-                __put_user(value.procs, &target_value->procs);
-                __put_user(value.totalhigh, &target_value->totalhigh);
-                __put_user(value.freehigh, &target_value->freehigh);
-                __put_user(value.mem_unit, &target_value->mem_unit);
-                unlock_user_struct(target_value, arg1, 1);
+            // Tell the guest that this is IRIX 5.3
+            const char osmajor[] = "5";
+            const char osminor[] = "3";
+
+            if (!(p = lock_user(VERIFY_WRITE, arg2, arg3, 0)))
+                goto efault;
+            switch (arg1) {
+            case 106:  // OS major release number
+                strncpy(p, osmajor, sizeof(osmajor));
+                ret = sizeof(osmajor);
+                break;
+            case 107:  // OS minor release number
+                strncpy(p, osminor, sizeof(osminor));
+                ret = sizeof(osminor);
+                break;
+            default:
+                ret = -TARGET_EINVAL;
+                break;
             }
+            ((char *)p)[arg3 - 1] = 0;
+            unlock_user(p, arg2, arg3);
         }
         break;
 #ifdef TARGET_NR_ipc
