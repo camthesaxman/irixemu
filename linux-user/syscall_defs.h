@@ -1876,7 +1876,7 @@ struct target_stat {
 	abi_long		target_st_ctime_nsec;
 	abi_long		st_blksize;
 	abi_long		st_blocks;
-	abi_long		st_pad4[14];
+	abi_long		st_pad4[12];
 };
 
 /*

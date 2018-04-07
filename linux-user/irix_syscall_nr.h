@@ -111,6 +111,7 @@
 #define TARGET_NR_getitimer		(TARGET_NR_Linux + 105)
 //#define TARGET_NR_stat			(TARGET_NR_Linux + 106)
 #define TARGET_NR_lstat			(TARGET_NR_Linux + 107)
+#define TARGET_NR_gethostname   (TARGET_NR_Linux + 108)
 //#define TARGET_NR_fstat			(TARGET_NR_Linux + 108)
 #define TARGET_NR_unused109		(TARGET_NR_Linux + 109)
 #define TARGET_NR_iopl			(TARGET_NR_Linux + 110)
