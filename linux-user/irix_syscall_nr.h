@@ -94,7 +94,7 @@
 #define TARGET_NR_reboot		(TARGET_NR_Linux +  88)
 #define TARGET_NR_readdir		(TARGET_NR_Linux +  89)
 //#define TARGET_NR_mmap			(TARGET_NR_Linux +  90)
-#define TARGET_NR_munmap		(TARGET_NR_Linux +  91)
+//#define TARGET_NR_munmap		(TARGET_NR_Linux +  91)
 #define TARGET_NR_truncate		(TARGET_NR_Linux +  92)
 #define TARGET_NR_ftruncate		(TARGET_NR_Linux +  93)
 #define TARGET_NR_fchmod		(TARGET_NR_Linux +  94)
@@ -141,7 +141,8 @@
 #define TARGET_NR_getpgid		(TARGET_NR_Linux + 132)
 #define TARGET_NR_fchdir		(TARGET_NR_Linux + 133)
 #define TARGET_NR_mmap		(TARGET_NR_Linux + 134)
-#define TARGET_NR_sysfs			(TARGET_NR_Linux + 135)
+//#define TARGET_NR_sysfs			(TARGET_NR_Linux + 135)
+#define TARGET_NR_munmap			(TARGET_NR_Linux + 135)
 #define TARGET_NR_personality		(TARGET_NR_Linux + 136)
 #define TARGET_NR_afs_syscall		(TARGET_NR_Linux + 137) /* Syscall for Andrew File System */
 #define TARGET_NR_setfsuid		(TARGET_NR_Linux + 138)
